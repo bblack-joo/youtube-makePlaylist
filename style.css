@@ -1,0 +1,140 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #10131a;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+.app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.panel {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 28px;
+  background: white;
+  color: #263238;
+  border-radius: 28px;
+}
+
+textarea {
+  width: 100%;
+  height: 260px;
+  padding: 18px;
+  font-size: 17px;
+  border-radius: 18px;
+}
+
+button {
+  border: none;
+  border-radius: 16px;
+  padding: 12px 20px;
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.main-btn {
+  margin-top: 18px;
+  background: #7e57c2;
+  color: white;
+}
+
+.player-page {
+  display: none;
+  width: 100vw;
+  min-height: 100vh;
+  padding: 12px;
+}
+
+.topbar {
+  height: 78px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.counter {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.top-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+#autoBtn {
+  background: #00c853;
+  color: white;
+}
+
+#fullscreenBtn {
+  background: #7e57c2;
+  color: white;
+}
+
+.video-frame {
+  width: 100%;
+  height: calc(100vh - 185px);
+  background: black;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+#youtubePlayer,
+#youtubePlayer iframe {
+  width: 100%;
+  height: 100%;
+}
+
+.progress-wrap {
+  height: 12px;
+  margin-top: 12px;
+  background: #2b3140;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #7e57c2, #42a5f5);
+}
+
+.progress-text {
+  text-align: center;
+  margin-top: 6px;
+  color: #cfd8dc;
+}
+
+.buttons {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+#prevBtn { background: #eee; }
+#openBtn { background: #ff5252; color: white; }
+#nextBtn { background: #42a5f5; color: white; }
+
+button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.finish {
+  padding: 120px 20px;
+  text-align: center;
+  font-size: 48px;
+}
