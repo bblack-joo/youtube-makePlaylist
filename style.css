@@ -339,3 +339,14 @@ button:disabled {
   opacity: .35;
   cursor: not-allowed;
 }
+
+.qr-upload-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+#imageFiles,
+#cameraFile {
+  flex: 1;
+}
