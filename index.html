@@ -8,7 +8,6 @@
   <title>유찬 플레이어</title>
 
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 
@@ -32,20 +31,33 @@
 https://youtu.be/bbb
 https://youtu.be/ccc"></textarea>
 
+    <div class="input-buttons">
+      <button id="clearLinksBtn" type="button">링크 비우기</button>
+    </div>
+
     <div class="qr-box">
       <h3>QR 사진에서 링크 가져오기</h3>
 
-      <input
-        type="file"
-        id="imageFiles"
-        accept="image/*"
-        multiple>
+      <div class="qr-upload-row">
+        <input
+          type="file"
+          id="imageFiles"
+          accept="image/*"
+          multiple>
 
-     <div class="qr-buttons">
-  <button id="scanBtn" type="button">QR 읽기</button>
-  <button id="stopScanBtn" type="button" disabled>중지</button>
-  <button id="copyAllBtn" type="button">QR 링크 전체 복사</button>
-</div>
+        <input
+          type="file"
+          id="cameraFile"
+          accept="image/*"
+          capture="environment">
+      </div>
+
+      <div class="qr-buttons">
+        <button id="scanBtn" type="button">QR 읽기</button>
+        <button id="stopScanBtn" type="button" disabled>중지</button>
+        <button id="copyAllBtn" type="button">QR 링크 전체 복사</button>
+      </div>
+
       <div id="status" class="qr-status"></div>
       <div id="results" class="qr-results"></div>
 
