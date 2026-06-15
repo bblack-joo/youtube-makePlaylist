@@ -150,12 +150,12 @@ function showFinish() {
       🎉 오늘 영상 끝!
       <br><br>
       <button id="restartBtn">처음부터 보기</button>
+      <button id="homeBtn">홈으로</button>
     </div>
   `;
 
-  document
-    .getElementById("restartBtn")
-    .addEventListener("click", restartPlaylist);
+  document.getElementById("restartBtn").addEventListener("click", restartPlaylist);
+  document.getElementById("homeBtn").addEventListener("click", goHome);
 }
 
 function restartPlaylist() {
@@ -170,6 +170,7 @@ function restartPlaylist() {
       </div>
 
       <div class="top-buttons">
+        <button id="homeBtn">🏠 홈</button>
         <button id="autoBtn">자동 다음: ${autoNextEnabled ? "ON" : "OFF"}</button>
         <button id="fullscreenBtn">전체 화면 ⛶</button>
       </div>
@@ -201,14 +202,29 @@ function restartPlaylist() {
   updateInfo();
 }
 
+function goHome() {
+  if (player && player.stopVideo) {
+    player.stopVideo();
+  }
+
+  playlist = [];
+  currentIndex = 0;
+  player = null;
+
+  document.getElementById("playerPage").style.display = "none";
+  document.getElementById("setup").style.display = "block";
+}
+
 function bindButtons() {
   const nextBtn = document.getElementById("nextBtn");
   const prevBtn = document.getElementById("prevBtn");
   const autoBtn = document.getElementById("autoBtn");
   const fullscreenBtn = document.getElementById("fullscreenBtn");
+  const homeBtn = document.getElementById("homeBtn");
 
   if (nextBtn) nextBtn.onclick = nextVideo;
   if (prevBtn) prevBtn.onclick = prevVideo;
+  if (homeBtn) homeBtn.onclick = goHome;
 
   if (autoBtn) {
     autoBtn.textContent = autoNextEnabled ? "자동 다음: ON" : "자동 다음: OFF";
@@ -241,41 +257,34 @@ function bindButtons() {
 }
 
 async function scanQrImages() {
-  const fileInput = document.getElementById("imageFiles");
-  const results = document.getElementById("results");
-  const statusDiv = document.getElementById("status");
-  const allLinks = document.getElementById("allLinks");
-  const scanBtn = document.getElementById("scanBtn");
-  const stopScanBtn = document.getElementById("stopScanBtn");
-
-  const files = fileInput.files;
+  const files = document.getElementById("imageFiles").files;
 
   if (files.length === 0) {
     alert("사진을 선택해주세요.");
     return;
   }
 
-  await scanFiles(files, results, statusDiv, allLinks, scanBtn, stopScanBtn);
+  await scanFiles(files);
 }
 
 async function scanCameraImage() {
   const cameraFile = document.getElementById("cameraFile");
+  const files = cameraFile.files;
+
+  if (!files || files.length === 0) return;
+
+  await scanFiles(files);
+
+  cameraFile.value = "";
+}
+
+async function scanFiles(files) {
   const results = document.getElementById("results");
   const statusDiv = document.getElementById("status");
   const allLinks = document.getElementById("allLinks");
   const scanBtn = document.getElementById("scanBtn");
   const stopScanBtn = document.getElementById("stopScanBtn");
 
-  const files = cameraFile.files;
-
-  if (!files || files.length === 0) return;
-
-  await scanFiles(files, results, statusDiv, allLinks, scanBtn, stopScanBtn);
-
-  cameraFile.value = "";
-}
-
-async function scanFiles(files, results, statusDiv, allLinks, scanBtn, stopScanBtn) {
   if (typeof jsQR === "undefined") {
     alert("QR 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요.");
     return;
@@ -366,9 +375,7 @@ function addQrResultRow(index, result, success, fileName) {
   const results = document.getElementById("results");
 
   const row = document.createElement("div");
-  row.className = success
-    ? "link-item success"
-    : "link-item error";
+  row.className = success ? "link-item success" : "link-item error";
 
   const text = document.createElement("div");
   text.className = "link-text";
@@ -439,7 +446,7 @@ function readQrFromImageFile(file) {
     const timeout = setTimeout(() => {
       URL.revokeObjectURL(url);
       resolve(null);
-    }, 8000);
+    }, 10000);
 
     img.onload = () => {
       try {
@@ -449,11 +456,12 @@ function readQrFromImageFile(file) {
         const result =
           safeScanWholeImage(img) ||
           safeScanCenterCrops(img) ||
+          safeScanCornerCrops(img) ||
+          safeScanThinGridCrops(img) ||
           safeScanGridCrops(img) ||
           safeScanLeftRightCrops(img);
 
         resolve(result || null);
-
       } catch (error) {
         console.warn("이미지 처리 실패:", error);
         resolve(null);
@@ -473,21 +481,10 @@ function readQrFromImageFile(file) {
 function safeScanCanvas(canvas) {
   try {
     if (stopScanRequested) return null;
+    if (!canvas || canvas.width <= 0 || canvas.height <= 0) return null;
+    if (canvas.width * canvas.height > 9000000) return null;
 
-    if (!canvas || canvas.width <= 0 || canvas.height <= 0) {
-      return null;
-    }
-
-    const maxPixels = 9000000;
-
-    if (canvas.width * canvas.height > maxPixels) {
-      return null;
-    }
-
-    const ctx = canvas.getContext("2d", {
-      willReadFrequently: true
-    });
-
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return null;
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -496,15 +493,11 @@ function safeScanCanvas(canvas) {
       imageData.data,
       imageData.width,
       imageData.height,
-      {
-        inversionAttempts: "attemptBoth"
-      }
+      { inversionAttempts: "attemptBoth" }
     );
 
     return code ? code.data : null;
-
-  } catch (error) {
-    console.warn("캔버스 스캔 실패:", error);
+  } catch {
     return null;
   }
 }
@@ -513,7 +506,7 @@ function safeMakeCanvasFromImage(img, sx, sy, sw, sh, scale = 1) {
   try {
     if (stopScanRequested) return null;
 
-    const maxSide = 3000;
+    const maxSide = 3500;
 
     let width = Math.floor(sw * scale);
     let height = Math.floor(sh * scale);
@@ -530,10 +523,7 @@ function safeMakeCanvasFromImage(img, sx, sy, sw, sh, scale = 1) {
     canvas.width = width;
     canvas.height = height;
 
-    const ctx = canvas.getContext("2d", {
-      willReadFrequently: true
-    });
-
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return null;
 
     ctx.imageSmoothingEnabled = false;
@@ -545,9 +535,7 @@ function safeMakeCanvasFromImage(img, sx, sy, sw, sh, scale = 1) {
     );
 
     return canvas;
-
-  } catch (error) {
-    console.warn("캔버스 생성 실패:", error);
+  } catch {
     return null;
   }
 }
@@ -559,12 +547,7 @@ function safeScanWholeImage(img) {
     if (stopScanRequested) return null;
 
     const canvas = safeMakeCanvasFromImage(
-      img,
-      0,
-      0,
-      img.width,
-      img.height,
-      scale
+      img, 0, 0, img.width, img.height, scale
     );
 
     const result = safeScanCanvas(canvas);
@@ -576,7 +559,7 @@ function safeScanWholeImage(img) {
 
 function safeScanCenterCrops(img) {
   const cropRates = [0.95, 0.85, 0.75, 0.6, 0.5, 0.4, 0.3];
-  const scales = [2, 3];
+  const scales = [2, 3, 4];
 
   for (const rate of cropRates) {
     if (stopScanRequested) return null;
@@ -588,17 +571,99 @@ function safeScanCenterCrops(img) {
     for (const scale of scales) {
       if (stopScanRequested) return null;
 
-      const canvas = safeMakeCanvasFromImage(
-        img,
-        sx,
-        sy,
-        size,
-        size,
-        scale
-      );
-
+      const canvas = safeMakeCanvasFromImage(img, sx, sy, size, size, scale);
       const result = safeScanCanvas(canvas);
       if (result) return result;
+    }
+  }
+
+  return null;
+}
+
+function safeScanCornerCrops(img) {
+  const scales = [2, 3, 4];
+  const sizes = [0.35, 0.45, 0.55, 0.65];
+
+  const corners = [
+    [0, 0],
+    [1, 0],
+    [0, 1],
+    [1, 1]
+  ];
+
+  for (const sizeRate of sizes) {
+    if (stopScanRequested) return null;
+
+    const cropSize = Math.min(img.width, img.height) * sizeRate;
+
+    for (const [cx, cy] of corners) {
+      if (stopScanRequested) return null;
+
+      const sx = cx === 0 ? 0 : img.width - cropSize;
+      const sy = cy === 0 ? 0 : img.height - cropSize;
+
+      for (const scale of scales) {
+        if (stopScanRequested) return null;
+
+        const canvas = safeMakeCanvasFromImage(
+          img,
+          sx,
+          sy,
+          cropSize,
+          cropSize,
+          scale
+        );
+
+        const result = safeScanCanvas(canvas);
+        if (result) return result;
+      }
+    }
+  }
+
+  return null;
+}
+
+function safeScanThinGridCrops(img) {
+  const scales = [2, 3, 4];
+  const cropRate = 0.38;
+  const cropSize = Math.min(img.width, img.height) * cropRate;
+
+  const points = [
+    0.1, 0.2, 0.3, 0.4, 0.5,
+    0.6, 0.7, 0.8, 0.9
+  ];
+
+  for (const py of points) {
+    if (stopScanRequested) return null;
+
+    for (const px of points) {
+      if (stopScanRequested) return null;
+
+      const sx = Math.max(
+        0,
+        Math.min(img.width - cropSize, img.width * px - cropSize / 2)
+      );
+
+      const sy = Math.max(
+        0,
+        Math.min(img.height - cropSize, img.height * py - cropSize / 2)
+      );
+
+      for (const scale of scales) {
+        if (stopScanRequested) return null;
+
+        const canvas = safeMakeCanvasFromImage(
+          img,
+          sx,
+          sy,
+          cropSize,
+          cropSize,
+          scale
+        );
+
+        const result = safeScanCanvas(canvas);
+        if (result) return result;
+      }
     }
   }
 
@@ -610,15 +675,9 @@ function safeScanGridCrops(img) {
   const cropSize = Math.min(img.width, img.height) * 0.5;
 
   const positions = [
-    [0.2, 0.2],
-    [0.5, 0.2],
-    [0.8, 0.2],
-    [0.2, 0.5],
-    [0.5, 0.5],
-    [0.8, 0.5],
-    [0.2, 0.8],
-    [0.5, 0.8],
-    [0.8, 0.8]
+    [0.2, 0.2], [0.5, 0.2], [0.8, 0.2],
+    [0.2, 0.5], [0.5, 0.5], [0.8, 0.5],
+    [0.2, 0.8], [0.5, 0.8], [0.8, 0.8]
   ];
 
   for (const [px, py] of positions) {
@@ -626,22 +685,13 @@ function safeScanGridCrops(img) {
 
     const sx = Math.max(0, img.width * px - cropSize / 2);
     const sy = Math.max(0, img.height * py - cropSize / 2);
-
     const sw = Math.min(cropSize, img.width - sx);
     const sh = Math.min(cropSize, img.height - sy);
 
     for (const scale of scales) {
       if (stopScanRequested) return null;
 
-      const canvas = safeMakeCanvasFromImage(
-        img,
-        sx,
-        sy,
-        sw,
-        sh,
-        scale
-      );
-
+      const canvas = safeMakeCanvasFromImage(img, sx, sy, sw, sh, scale);
       const result = safeScanCanvas(canvas);
       if (result) return result;
     }
@@ -668,15 +718,7 @@ function safeScanLeftRightCrops(img) {
     for (const scale of scales) {
       if (stopScanRequested) return null;
 
-      const canvas = safeMakeCanvasFromImage(
-        img,
-        sx,
-        sy,
-        sw,
-        sh,
-        scale
-      );
-
+      const canvas = safeMakeCanvasFromImage(img, sx, sy, sw, sh, scale);
       const result = safeScanCanvas(canvas);
       if (result) return result;
     }
@@ -745,11 +787,18 @@ document.addEventListener("DOMContentLoaded", function () {
   const stopScanBtn = document.getElementById("stopScanBtn");
   const clearLinksBtn = document.getElementById("clearLinksBtn");
   const cameraFile = document.getElementById("cameraFile");
+  const cameraBtn = document.getElementById("cameraBtn");
 
   if (scanBtn) scanBtn.addEventListener("click", scanQrImages);
   if (copyAllBtn) copyAllBtn.addEventListener("click", copyAllQrLinks);
   if (clearLinksBtn) clearLinksBtn.addEventListener("click", clearLinksInput);
   if (cameraFile) cameraFile.addEventListener("change", scanCameraImage);
+
+  if (cameraBtn && cameraFile) {
+    cameraBtn.addEventListener("click", () => {
+      cameraFile.click();
+    });
+  }
 
   if (stopScanBtn) {
     stopScanBtn.addEventListener("click", function () {
