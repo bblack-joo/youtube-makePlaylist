@@ -255,6 +255,27 @@ async function scanQrImages() {
     return;
   }
 
+  await scanFiles(files, results, statusDiv, allLinks, scanBtn, stopScanBtn);
+}
+
+async function scanCameraImage() {
+  const cameraFile = document.getElementById("cameraFile");
+  const results = document.getElementById("results");
+  const statusDiv = document.getElementById("status");
+  const allLinks = document.getElementById("allLinks");
+  const scanBtn = document.getElementById("scanBtn");
+  const stopScanBtn = document.getElementById("stopScanBtn");
+
+  const files = cameraFile.files;
+
+  if (!files || files.length === 0) return;
+
+  await scanFiles(files, results, statusDiv, allLinks, scanBtn, stopScanBtn);
+
+  cameraFile.value = "";
+}
+
+async function scanFiles(files, results, statusDiv, allLinks, scanBtn, stopScanBtn) {
   if (typeof jsQR === "undefined") {
     alert("QR 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요.");
     return;
@@ -266,8 +287,10 @@ async function scanQrImages() {
   results.innerHTML = "";
   allLinks.value = "";
 
-  scanBtn.disabled = true;
-  scanBtn.textContent = "읽는 중...";
+  if (scanBtn) {
+    scanBtn.disabled = true;
+    scanBtn.textContent = "읽는 중...";
+  }
 
   if (stopScanBtn) {
     stopScanBtn.disabled = false;
@@ -327,8 +350,10 @@ async function scanQrImages() {
       `<p class="error-text">처리 중 오류가 났어요. 다시 시도해주세요.</p>`;
 
   } finally {
-    scanBtn.disabled = false;
-    scanBtn.textContent = "QR 읽기";
+    if (scanBtn) {
+      scanBtn.disabled = false;
+      scanBtn.textContent = "QR 읽기";
+    }
 
     if (stopScanBtn) {
       stopScanBtn.disabled = true;
@@ -390,6 +415,16 @@ function addQrResultRow(index, result, success, fileName) {
   }
 
   results.appendChild(row);
+}
+
+function clearLinksInput() {
+  const linksInput = document.getElementById("linksInput");
+
+  if (!linksInput.value.trim()) return;
+
+  if (confirm("붙여넣은 링크를 모두 비울까요?")) {
+    linksInput.value = "";
+  }
 }
 
 function wait(ms) {
@@ -708,9 +743,13 @@ document.addEventListener("DOMContentLoaded", function () {
   const scanBtn = document.getElementById("scanBtn");
   const copyAllBtn = document.getElementById("copyAllBtn");
   const stopScanBtn = document.getElementById("stopScanBtn");
+  const clearLinksBtn = document.getElementById("clearLinksBtn");
+  const cameraFile = document.getElementById("cameraFile");
 
   if (scanBtn) scanBtn.addEventListener("click", scanQrImages);
   if (copyAllBtn) copyAllBtn.addEventListener("click", copyAllQrLinks);
+  if (clearLinksBtn) clearLinksBtn.addEventListener("click", clearLinksInput);
+  if (cameraFile) cameraFile.addEventListener("change", scanCameraImage);
 
   if (stopScanBtn) {
     stopScanBtn.addEventListener("click", function () {
